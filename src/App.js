@@ -9,6 +9,7 @@ export default class App extends React.Component {
         super();
         this.state = {
             headline: "Top commented.",
+            initialImageItems: [],
             imageItems: [],
             autoRefresh: false,
             rangeMin: "",
@@ -33,7 +34,8 @@ export default class App extends React.Component {
             })
             .then(data => {
                 this.setState({
-                    imageItems: data.data.children.sort(this.compare),
+                    initialImageItems: data.data.children.sort(this.compare),
+                    imageItems : data.data.children.sort(this.compare),
                     isLoading: false,
                     rangeMin: data.data.children.sort(this.compare)[data.data.children.length - 1].data.num_comments,
                     rangeMax: data.data.children.sort(this.compare)[0].data.num_comments
@@ -43,7 +45,7 @@ export default class App extends React.Component {
 
     autoRefresh = () => {
 
-        if(!this.state.autoRefresh){
+        if (!this.state.autoRefresh) {
             refresh = setInterval(() => this.getImages(), 3000);
             this.setState({
                 autoRefresh: true
@@ -65,10 +67,17 @@ export default class App extends React.Component {
         this.getImages();
     }
 
-    onRangeMove =(event) => {
+    onRangeMove = (event) => {
         this.setState({
             rangeValue: event.target.value
         });
+        let result = this.state.initialImageItems.filter(item =>
+            item.data.num_comments >= event.target.value
+        );
+        this.setState({
+            imageItems : result,
+        });
+        console.log(result.length > 0 ? result.length: "No results found matching your criteria")
     };
 
 
@@ -89,45 +98,47 @@ export default class App extends React.Component {
                             stroke: '#000000'
                         }
                     }),
-                    content : ({
+                    content: ({
                         color: '#000000',
                         width: '290px',
                     })
                 }}
             >
 
-            <div className="gallery__container">
-                <h1>{headline}</h1>
-                <input type="range"
-                       id="comments"
-                       name="comments"
-                       min={rangeMin}
-                       max={rangeMax}
-                       value={rangeValue}
-                       step="10"
-                onChange={this.onRangeMove}/>
+                <div className="gallery__container">
+                    <h1>{headline}</h1>
+                    <input type="range"
+                           id="comments"
+                           name="comments"
+                           min={rangeMin}
+                           max={rangeMax + 100}
+                           value={rangeValue}
+                           step="10"
+                           onChange={this.onRangeMove}/>
                     <label htmlFor="comments">Current filter: </label>
                     <span>{rangeValue}</span>
-                <input className="gallery__refresh-btn"
-                type="button"
-                value="Start auto-refresh"
-                onClick={this.autoRefresh}/>
-                <div className="gallery__gallery">
-                            {
-                                imageItems.map(item => {
-                                    return (
-                                        <div key= {item.data.id}
-                                             className="gallery__image-container">
-                                            <img src={item.data.thumbnail} alt=""/>
-                                            <h2>{item.data.title}</h2>
-                                            <p>Number of comments: {item.data.num_comments}</p>
-                                            <a href={item.data.permalink}>Link</a>
-                                        </div>
-                                    );
-                                })
-                            }
+                    <input className="gallery__refresh-btn"
+                           type="button"
+                           value="Start auto-refresh"
+                           onClick={this.autoRefresh}/>
+                    <div className="gallery__gallery">
+                        {
+                            imageItems.length > 0 ?
+                            imageItems.map(item => {
+                            return (
+                            <div key={item.data.id}
+                            className="gallery__image-container">
+                            <img src={item.data.thumbnail} alt=""/>
+                            <h2>{item.data.title}</h2>
+                            <p>Number of comments: {item.data.num_comments}</p>
+                            <a href={item.data.permalink}>Link</a>
+                            </div>
+                            );
+                        }): <p className="notMatchWarn">No results found matching your criteria</p>
+
+                        }
+                    </div>
                 </div>
-            </div>
             </LoadingOverlay>
         );
     }
