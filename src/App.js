@@ -3,14 +3,21 @@ import './App.css';
 //import Loader from 'react-loader-spinner'
 import LoadingOverlay from 'react-loading-overlay';
 
+let refresh;
 export default class App extends React.Component {
     constructor() {
         super();
         this.state = {
             headline: "Top commented.",
-            imageItems: []
+            imageItems: [],
+            autoRefresh: false,
+            rangeMin: "",
+            rangeMax: "",
+            rangeValue: ""
+
         }
     }
+    ;
 
     getImages = () => {
 
@@ -25,14 +32,29 @@ export default class App extends React.Component {
                 return response.json();
             })
             .then(data => {
-                //console.log(data.data.children);
                 this.setState({
-                    imageItems: data.data.children,
-                    isLoading: false
+                    imageItems: data.data.children.sort(this.compare),
+                    isLoading: false,
+                    rangeMin: data.data.children.sort(this.compare)[data.data.children.length - 1].data.num_comments,
+                    rangeMax: data.data.children.sort(this.compare)[0].data.num_comments
                 });
-                //
-                // this.props.onChangeTotalPages(data.total_pages);
             });
+    };
+
+    autoRefresh = () => {
+
+        if(!this.state.autoRefresh){
+            refresh = setInterval(() => this.getImages(), 3000);
+            this.setState({
+                autoRefresh: true
+            });
+        } else {
+            clearInterval(refresh);
+            refresh = null;
+            this.setState({
+                autoRefresh: false
+            });
+        }
     };
 
     compare = (a, b) => {
@@ -43,10 +65,17 @@ export default class App extends React.Component {
         this.getImages();
     }
 
+    onRangeMove =(event) => {
+        this.setState({
+            rangeValue: event.target.value
+        });
+    };
+
 
     render() {
 
-        const {imageItems, isLoading} = this.state;
+        const {imageItems, isLoading, rangeMin, rangeMax, headline, rangeValue} = this.state;
+        console.log();
         return (
             <LoadingOverlay
                 active={isLoading}
@@ -66,11 +95,26 @@ export default class App extends React.Component {
                     })
                 }}
             >
+
             <div className="gallery__container">
-                <h1>{this.state.headline}</h1>
+                <h1>{headline}</h1>
+                <input type="range"
+                       id="comments"
+                       name="comments"
+                       min={rangeMin}
+                       max={rangeMax}
+                       value={rangeValue}
+                       step="10"
+                onChange={this.onRangeMove}/>
+                    <label htmlFor="comments">Current filter: </label>
+                    <span>{rangeValue}</span>
+                <input className="gallery__refresh-btn"
+                type="button"
+                value="Start auto-refresh"
+                onClick={this.autoRefresh}/>
                 <div className="gallery__gallery">
                             {
-                                imageItems.sort(this.compare).map(item => {
+                                imageItems.map(item => {
                                     return (
                                         <div key= {item.data.id}
                                              className="gallery__image-container">
