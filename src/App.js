@@ -2,7 +2,10 @@ import React from 'react';
 import './App.css';
 //import Loader from 'react-loader-spinner'
 import LoadingOverlay from 'react-loading-overlay';
-
+import Heading from "./Heading";
+import AutoRefreshButton from "./AutoRefreshButton";
+import RangeFilter from "./RangeFilter";
+import GalleryImages from "./GalleryImages";
 let refresh;
 export default class App extends React.Component {
     constructor() {
@@ -51,7 +54,7 @@ export default class App extends React.Component {
         if (!this.state.autoRefresh) {
 
 
-            if(!this.state.rangeValue){
+            if (!this.state.rangeValue) {
                 refresh = setInterval(() => this.getImages(), 3000);
                 this.setState({
                     autoRefresh: true
@@ -91,7 +94,7 @@ export default class App extends React.Component {
             item.data.num_comments >= event.target.value
         );
         this.setState({
-            imageItems : result,
+            imageItems: result,
         });
     };
 
@@ -111,48 +114,31 @@ export default class App extends React.Component {
                         width: '50px',
                         '& svg circle': {
                             stroke: '#000000'
-                        }
+                        },
+                        position: 'absolute',
+                        left: '50%',
+                        transform: ' translate(-50%)',
+                        top: '50%'
+
                     }),
                     content: ({
                         color: '#000000',
                         width: '290px',
+                        padding: "50px",
+                        margin: "70px auto"
                     })
                 }}
             >
-
                 <div className="gallery__container">
-                    <h1>{headline}</h1>
-                    <input type="range"
-                           id="comments"
-                           name="comments"
-                           min={rangeMin}
-                           max={rangeMax + 100}
-                           value={rangeValue}
-                           step="10"
-                           onChange={this.onRangeMove}/>
-                    <label htmlFor="comments">Current filter: </label>
+                    <Heading headline={headline}/>
+                    <RangeFilter rangeMin={rangeMin}
+                                 rangeMax={rangeMax}
+                                 rangeValue={rangeValue}
+                                 onRangeMove={this.onRangeMove}
+                    />
                     <span>{rangeValue}</span>
-                    <input className="gallery__refresh-btn"
-                           type="button"
-                           value="Start auto-refresh"
-                           onClick={this.autoRefresh}/>
-                    <div className="gallery__gallery">
-                        {
-                            imageItems.length > 0 ?
-                            imageItems.map(item => {
-                            return (
-                            <div key={item.data.id}
-                            className="gallery__image-container">
-                            <img src={item.data.thumbnail} alt=""/>
-                            <h2>{item.data.title}</h2>
-                            <p>Number of comments: {item.data.num_comments}</p>
-                            <a href={item.data.permalink}>Link</a>
-                            </div>
-                            );
-                        }): <p className="notMatchWarn">No results found matching your criteria</p>
-
-                        }
-                    </div>
+                    <AutoRefreshButton autoRefresh={this.autoRefresh}/>
+                    <GalleryImages imageItems={imageItems}/>
                 </div>
             </LoadingOverlay>
         );
