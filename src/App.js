@@ -33,9 +33,12 @@ export default class App extends React.Component {
                 return response.json();
             })
             .then(data => {
+                let imageItems = this.state.rangeValue ? this.state.initialImageItems.filter(item =>
+                    item.data.num_comments >= Number(this.state.rangeValue)) : data.data.children.sort(this.compare);
+
                 this.setState({
                     initialImageItems: data.data.children.sort(this.compare),
-                    imageItems : data.data.children.sort(this.compare),
+                    imageItems,
                     isLoading: false,
                     rangeMin: data.data.children.sort(this.compare)[data.data.children.length - 1].data.num_comments,
                     rangeMax: data.data.children.sort(this.compare)[0].data.num_comments
@@ -46,10 +49,23 @@ export default class App extends React.Component {
     autoRefresh = () => {
 
         if (!this.state.autoRefresh) {
-            refresh = setInterval(() => this.getImages(), 3000);
-            this.setState({
-                autoRefresh: true
-            });
+
+
+            if(!this.state.rangeValue){
+                refresh = setInterval(() => this.getImages(), 3000);
+                this.setState({
+                    autoRefresh: true
+                });
+            } else {
+                refresh = setInterval(() => this.getImages(), 3000);
+
+
+                this.setState({
+                    autoRefresh: true,
+
+                });
+            }
+
         } else {
             clearInterval(refresh);
             refresh = null;
@@ -77,7 +93,6 @@ export default class App extends React.Component {
         this.setState({
             imageItems : result,
         });
-        console.log(result.length > 0 ? result.length: "No results found matching your criteria")
     };
 
 
