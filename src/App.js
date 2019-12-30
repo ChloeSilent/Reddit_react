@@ -1,108 +1,88 @@
 import React from 'react';
 import './App.css';
-//import Loader from 'react-loader-spinner'
 import LoadingOverlay from 'react-loading-overlay';
-import Heading from "./Heading";
-import AutoRefreshButton from "./AutoRefreshButton";
+
 import RangeFilter from "./RangeFilter";
-import GalleryImages from "./GalleryImages";
+
+import Item from "./Item";
+const link = "https://www.reddit.com/r/reactjs.json?limit=100";
+
 let refresh;
 export default class App extends React.Component {
     constructor() {
         super();
         this.state = {
-            headline: "Top commented.",
-            initialImageItems: [],
-            imageItems: [],
-            autoRefresh: false,
-            rangeMin: "",
+            items: [],
+            enableAutoRefresh: false,
+            rangeMin: "0",
             rangeMax: "",
-            rangeValue: ""
+            rangeValue: "",
+            isLoading: false
 
         }
     }
     ;
 
-    getImages = () => {
-
-        const link = "https://www.reddit.com/r/reactjs.json?limit=100";
+    getItems = () => {
         this.setState({
             isLoading: true
         });
 
         fetch(link)
-            .then(response => {
-
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                let imageItems = this.state.rangeValue ? this.state.initialImageItems.filter(item =>
-                    item.data.num_comments >= Number(this.state.rangeValue)) : data.data.children.sort(this.compare);
 
                 this.setState({
-                    initialImageItems: data.data.children.sort(this.compare),
-                    imageItems,
+                    items: data.data.children,
                     isLoading: false,
-                    rangeMin: data.data.children.sort(this.compare)[data.data.children.length - 1].data.num_comments,
-                    rangeMax: data.data.children.sort(this.compare)[0].data.num_comments
+                    rangeMax: Math.max.apply(Math, data.data.children.map(function(item) { return item.data.num_comments; })) + 10
                 });
             });
     };
 
-    autoRefresh = () => {
-
-        if (!this.state.autoRefresh) {
-
-
-            if (!this.state.rangeValue) {
-                refresh = setInterval(() => this.getImages(), 3000);
-                this.setState({
-                    autoRefresh: true
-                });
+    handleAutoRefreshBtn = () => {
+        this.setState(state => ({
+            enableAutoRefresh: !state.enableAutoRefresh
+        }), () => {
+            if (this.state.enableAutoRefresh) {
+                    refresh = setInterval(() => {
+                        this.getItems()
+                    }, 3000);
             } else {
-                refresh = setInterval(() => this.getImages(), 3000);
-
-
-                this.setState({
-                    autoRefresh: true,
-
-                });
+                clearInterval(refresh);
+                refresh = null;
             }
-
-        } else {
-            clearInterval(refresh);
-            refresh = null;
-            this.setState({
-                autoRefresh: false
-            });
-        }
-    };
-
-    compare = (a, b) => {
-        return b.data.num_comments - a.data.num_comments;
+        })
     };
 
     componentDidMount() {
-        this.getImages();
+        this.getItems();
     }
 
     onRangeMove = (event) => {
         this.setState({
-            rangeValue: event.target.value
+            rangeValue: Number(event.target.value)
         });
-        let result = this.state.initialImageItems.filter(item =>
-            item.data.num_comments >= event.target.value
-        );
-        this.setState({
-            imageItems: result,
-        });
+    };
+
+    getItemsByComments = (items, minComments) => {
+        return items.filter(item => item.data.num_comments >= minComments).sort((a, b) => b.data.num_comments - a.data.num_comments);
     };
 
 
     render() {
 
-        const {imageItems, isLoading, rangeMin, rangeMax, headline, rangeValue} = this.state;
-        console.log();
+        const {
+            items,
+            isLoading,
+            rangeMin,
+            rangeMax,
+            rangeValue,
+            enableAutoRefresh
+        } = this.state;
+
+        const itemsByComments = this.getItemsByComments(items, rangeValue);
+
         return (
             <LoadingOverlay
                 active={isLoading}
@@ -119,7 +99,6 @@ export default class App extends React.Component {
                         left: '50%',
                         transform: ' translate(-50%)',
                         top: '50%'
-
                     }),
                     content: ({
                         color: '#000000',
@@ -130,15 +109,28 @@ export default class App extends React.Component {
                 }}
             >
                 <div className="gallery__container">
-                    <Heading headline={headline}/>
+                    <h1>Top commented.</h1>
                     <RangeFilter rangeMin={rangeMin}
                                  rangeMax={rangeMax}
                                  rangeValue={rangeValue}
                                  onRangeMove={this.onRangeMove}
                     />
                     <span>{rangeValue}</span>
-                    <AutoRefreshButton autoRefresh={this.autoRefresh}/>
-                    <GalleryImages imageItems={imageItems}/>
+                    <button className="gallery__refresh-btn"
+                            type="button"
+                            onClick={this.handleAutoRefreshBtn}>
+                        {`${enableAutoRefresh ? "Stop" : "Start"} auto-refresh`}
+                    </button>
+                    <div className="gallery__gallery">
+                        {
+                            itemsByComments.length ?
+                                itemsByComments.map(item =>
+                                    <Item data={item.data}
+                                          key={item.data.id}
+                                    />
+                                ) : <p className="notMatchWarn">No results found matching your criteria</p>
+                        }
+                    </div>
                 </div>
             </LoadingOverlay>
         );
